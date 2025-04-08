@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime
 from datetime import date
 from pathlib import Path
+from dateutil.relativedelta import relativedelta
 
 """
 Cat Tracker written by Uriah Efe McKinney
@@ -17,124 +18,179 @@ Cat Tracker written by Uriah Efe McKinney
 """
 
 class Cat:
-    def __init__(self, name, dob, last_name='', breed='', fixed=False, **attributes):
+    def __init__(self, name, dob='', last_name='', sex='', breed=''):
         """Weight is expected to be a 2d list with entries set as weight-timestamp pairs"""
-        self.uuid = str(uuid.uuid4())
-        self.name = name
-        self.last_name = last_name
-        self.dob = dob
-        self.breed = breed
-        self.fixed = fixed
-        self.obese = False
-        self.daily_calories = 0
+        self.created = datetime.now()
+        self.name = [name, self.created]
+        self.last_name = [last_name, self.created] if last_name else []
+        self.sex = [sex, self.created] if sex else []
+        self.breed = [breed, self.created] if breed else []
+        self.dob = [dob, self.created] if dob else []
+        self.fixed = []
         self.weight = []
-        self.notes = ''
-        self.created = Helpers().get_timestamp()
+        self.notes = []
+        self.identifiers = {}
+        self.vet = {}
+        self.insurance_details = {}
+        self.medical_history = {}
+        self.medicines = {}
+        self._uuid = str(uuid.uuid4())
+        self._obese = False
+        self._daily_calories = 0
+        self._age = None
         self.deactivated = [False, self.created]
-        self.attributes = attributes
+
+    @property
+    def uuid(self):
+        return self._uuid
+
+    @property
+    def age(self):
+        if self.dob:
+            today = date.today()
+            current_age = relativedelta(today, self.dob[0])
+            return current_age
+        else:
+            return None
+
+    @property
+    def obese(self):
+        return self._obese
+
+    @property
+    def set_obese(self):
+        self._obese = not self._obese
+
+    @property
+    def daily_calories(self):
+        return self._daily_calories
+
+    @property
+    def set_daily_calories(self):
+        if not self.weight or not self.age:
+            return None
+        rer = self.calculate_rer(self.weight[-1][0])
+        if self.age.years >= 1:
+            if self.obese == True:
+                self._daily_calories = rer
+            elif self.fixed == True:
+                self._daily_calories = rer * 1.2
+            else:
+                self._daily_calories = rer * 1.4
+        elif self.age.months >= 5:
+            self._daily_calories = rer * 2
+        else:
+            self._daily_calories = rer * 2.5
 
     def __str__(self):
-        return f'{self.name} {self.last_name}'
+        return_string = f'{self.name[0]}'
+        if self.last_name:
+            return_string += ' ' + self.last_name[0]
+        return return_string
 
     def add_weight(self, new_weight):
         """Add a new weight-timestamp pair to self.weight"""
-        self.weight.append([new_weight, Helpers().get_timestamp()])
-        self.daily_calories = self.calculate_calories(new_weight)
+        self.weight.append([new_weight, datetime.now()])
+        self.set_daily_calories
 
-    def update_detail(self, attribute, new_value):
-        """Update the value of the specified attribute"""
-        if attribute == 'weight':
-            self.add_weight(new_value)
-            return True
-        elif attribute == 'daily_calories':
-            return False
-        elif attribute in self.__dict__:
-            self.__dict__[attribute] = new_value
-            return True
-        return False
-
-    def calculate_calories(self, weight):
-        rer = self.calculate_rer(weight)
-        age = self.cat_age()
-        if age['years'] >= 1:
-            if self.obese == True:
-                return rer
-            elif self.fixed == True:
-                return rer * 1.2
-            else:
-                return rer * 1.4
-        elif age['months'] >= 5:
-            return rer * 2
+    def update_value(self, attribute, new_value):
+        """Update the value of the selected attribute"""
+        if self.validate_attribute_exists(attribute):
+            self.__dict__[attribute] = [new_value, datetime.now()]
         else:
-            return rer * 2.5
+            raise AttributeError(f'{attribute.title()} is not a supported attribute')
+
+    def flip_bool_value(self, attribute):
+        """Flip the value of the selected bool attribute"""
+        if self.validate_attribute_exists(attribute):
+            if type(self.__dict__[attribute][0]) is bool:
+                self.__dict__[attribute] = [not self.__dict__[attribute][0], datetime.now()]
+
+    def add_list_value(self, attribute, new_value):
+        """Append new_value to the selected attribute"""
+        if self.validate_is_list(attribute):
+            self.__dict__[attribute].append([new_value, datetime.now()])
+            print(self.__dict__[attribute][-1])
+
+    def update_list_value(self, attribute, new_value, list_index=-1):
+        """Update the value of the selected list attribute based on list_index"""
+        if self.validate_is_list(attribute):
+            self.__dict__[attribute][list_index] = [new_value, datetime.now()]
+
+    def delete_list_value(self, attribute, del_index=-1):
+        """Delete a list record at del_index for the selected attribute"""
+        if self.validate_is_list(attribute):
+            self.__dict__[attribute].pop(del_index)
+
+    def update_dict_value(self, attribute, key, new_value):
+        """Update the value of the selected dict attribute key"""
+        if self.validate_is_dict(attribute):
+            self.__dict__[attribute][key] = [new_value, datetime.now()]
 
     def calculate_rer(self, weight):
-        return 30 * weight + 70
+        try:
+            rer = 30 * weight + 70
+            return rer
+        except TypeError:
+            return None
 
-    def cat_age(self):
-        today = date.today()
-        years = today.year - self.dob.year
-        months = today.month - self.dob.month
-        if months < 0:
-            years -= 1
-            months += 12
-        return {
-            'years':years,
-            'months':months,
-        }
-
-    def activation_toggle(self):
-        self.deactivated[0] = not self.deactivated[0]
-        self.deactivated[1] = Helpers().get_timestamp()
-
-class CatCollection:
-    def __init__(self, **attributes):
-        self.collection = {}
-        self.attributes = attributes
-
-    def add_new_cat(self, name, dob, **attributes):
-        pass
-
-    def select_cat(self, name):
-        found_cats = []
-        for cat in self.collection.values():
-            if name in cat.name:
-                found_cats.append(cat)
-        if found_cats:
-            return found_cats
-        return False
-
-
-
-
-
-
-
-class Validators:
-    def __init__(self, *args):
-        self.args = args
+    def validate_attribute_exists(self, validation_value):
+        return validation_value in self.__dict__
 
     def validate_value_exists(self, validation_value):
         return bool(validation_value)
 
-    def validate_positive_float(self, validation_value):
+    def validate_is_positive_float(self, validation_value):
         try:
             if float(validation_value) > 0:
                 return True
         except (ValueError, TypeError):
             return False
 
-class Helpers:
-    def __init__(self, *args):
-        self.args = args
+    def validate_is_list(self, validation_value):
+        if self.validate_attribute_exists(validation_value):
+            if self.__dict__[validation_value] == []:
+                return True
+            else:
+                return type(self.__dict__[validation_value][0]) is list
 
-    def get_timestamp(self):
-        now = datetime.now()
-        return datetime.timestamp(now)
+    def validate_is_dict(self, validation_value):
+        if self.validate_attribute_exists(validation_value):
+            if self.__dict__[validation_value] == {}:
+                return True
+            else:
+                return type(self.__dict__[validation_value][0]) is dict
 
-    def get_date(self, timestamp):
-        return datetime.fromtimestamp(timestamp).strftime('%d %B %Y')
+    """def validate_is_date(self, validation_value):
+        try:
+            datetime.strptime(validation_value, %d %B %Y)
+            return True
+        except ValueError:
+            return False"""
+
+    def validate_is_nonfuture_date(self, validation_value):
+        if datetime.now() >= validation_value:
+            return True
+        return False
+
+class CatCollection:
+    def __init__(self, **attributes):
+        self.collection = {}
+        self.attributes = attributes
+
+    def add_new_cat(self, name, dob='', last_name='', sex='', breed='', fixed=False, **attributes):
+        new_cat = Cat(name, dob, last_name, sex, breed, **attributes)
+        self.collection[new_cat.uuid] = new_cat
+
+    def select_cat(self, name):
+        for cat in self.collection.values():
+            if name in cat.name:
+                return cat
+        return False
 
 if __name__ == "__main__":
-    a = Cat('Piroshki', '2025-09-30')
+    a = Cat('Piroshki', datetime(year=1975, month=11, day=5))
     print(a.uuid)
+    print(a.age.years)
+    print(a.age.months)
+    print(a.age.days)
