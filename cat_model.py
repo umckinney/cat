@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import uuid
+import copy
 from datetime import datetime
 from datetime import date
 from pathlib import Path
@@ -18,8 +18,11 @@ Cat Tracker written by Uriah Efe McKinney
 """
 
 class Cat:
+    counter = 0
+
     def __init__(self, name, dob='', last_name='', sex='', breed=''):
         """Weight is expected to be a 2d list with entries set as weight-timestamp pairs"""
+        Cat.counter += 1
         self.created = datetime.now()
         self.name = [name, self.created]
         self.last_name = [last_name, self.created] if last_name else []
@@ -34,15 +37,15 @@ class Cat:
         self.insurance_details = {}
         self.medical_history = {}
         self.medicines = {}
-        self._uuid = str(uuid.uuid4())
+        self._id = Cat.counter
         self._obese = False
         self._daily_calories = 0
         self._age = None
         self.deactivated = [False, self.created]
 
     @property
-    def uuid(self):
-        return self._uuid
+    def id(self):
+        return self._id
 
     @property
     def age(self):
@@ -178,19 +181,53 @@ class CatCollection:
         self.collection = {}
         self.attributes = attributes
 
-    def add_new_cat(self, name, dob='', last_name='', sex='', breed='', fixed=False, **attributes):
-        new_cat = Cat(name, dob, last_name, sex, breed, **attributes)
-        self.collection[new_cat.uuid] = new_cat
+    def add_new_cat(self, name, dob='', last_name='', sex='', breed=''):
+        new_cat = Cat(name, dob, last_name, sex, breed)
+        self.collection[new_cat.id] = new_cat
+        return self.collection[new_cat.id]
 
-    def select_cat(self, name):
+    def select_by_id(self, menu, id):
+        return menu.get(id)
+
+    def select_cat_by_name(self, name):
         for cat in self.collection.values():
+            print(f'cat.name = {cat.name}')
+            print(f'name = {name}')
             if name in cat.name:
                 return cat
         return False
 
+    def list_cats(self):
+        list_of_cats = []
+        for cat in self.collection.values():
+            list_of_cats.append(cat.__str__)
+        return list_of_cats
+
+    def cat_menu(self):
+        menu = copy.deepcopy(self.collection)
+        menu['A'] = 'Add a new cat'
+        menu['E'] = 'Exit'
+        return menu
+
+    def validate_menu_selection(self, menu, user_selection):
+        try:
+            print(f'validate_menu_selection user_selection = {user_selection}')
+            print(f'validate_menu_selection menu = {menu}')
+            if user_selection.isdigit():
+                user_selection = int(user_selection)
+            menu_selection = menu.get(user_selection)
+            print(f'validate_menu_selection menu_selection = {menu_selection}')
+            if menu_selection:
+                return menu_selection
+            else:
+                return 'Invalid Selection'
+        except (TypeError, ValueError):
+            return 'Invalid Selection'
+
+
 if __name__ == "__main__":
     a = Cat('Piroshki', datetime(year=1975, month=11, day=5))
-    print(a.uuid)
+    print(a.id)
     print(a.age.years)
     print(a.age.months)
     print(a.age.days)
