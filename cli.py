@@ -6,7 +6,6 @@ from cat_model import Cat
 from cat_model import CatCollection
 from docutils.writers.odf_odt import fix_ns
 
-
 ##########################################################
 # UI CLASSES                                             #
 ##########################################################
@@ -47,17 +46,11 @@ class View:
 
     def print_cat_details(self, content):
         """Expects a Cat object"""
-        print(f'content = {content}')
-        print(f'Name: {content.__str__()}')
-        print(f'not content.age = {not content.age}')
         age = 'Age: -' if not content.age else f'Age: {content.age.years} years {content.age.months} months old'
-        print(age)
         weight = 'Weight: -' if not content.weight else f'Weight: {content.weight[-1][0]}'
-        print(weight)
         breed = 'Breed: -' if not content.breed else f'Breed: {content.breed[0]}'
-        print(breed)
         sex = 'Sex: -' if not content.sex else f'Sex: {content.sex[0]}'
-        print(sex)
+        print(f'Name: {content.__str__()}')
         if len(content.sex) == 0:
             fix_label = 'Fixed'
         else:
@@ -68,6 +61,10 @@ class View:
             else:
                 fix_label = 'Fixed'
         fixed = f'{fix_label}: -' if not content.fixed else f'{fix_label}: {content.fixed[0]}'
+        print(age)
+        print(weight)
+        print(breed)
+        print(sex)
         print(fixed)
         print('Notes:')
         if len(content.notes) == 0:
@@ -91,18 +88,15 @@ def main():
         cat_menu = cats.cat_menu()
         main_view.print_menu(cat_menu)
         main_view.newline()
-        user_selection = main_view.collect_user_input('Enter your selection')
+        user_selection = main_view.collect_user_input('Enter your selection').upper()
         validated_user_selection = cats.validate_menu_selection(cat_menu, user_selection)
-        print(f'user_selection = {user_selection}')
-        print(f'validated_user_selection = {validated_user_selection}')
-        main_view.pause_screen()
         if validated_user_selection != 'Invalid Selection':
             if validated_user_selection == 'Add a new cat':
                 add_cat_view(cats)
             elif validated_user_selection == 'Exit':
                 exit_program()
             elif user_selection.isdigit():
-                 cat_detail_view(cats.select_cat_by_name(validated_user_selection))
+                cat_detail_view(cats.select_by_id(cats.collection, int(user_selection)))
 
 def cat_detail_view(cat):
     detail_view = View('Cat Details')
@@ -123,13 +117,19 @@ def add_cat_view(cat_collection):
         name = add_a_cat_view.collect_user_input("Enter your cat's name")
     new_cat['name'] = name
     new_cat['last_name'] = add_a_cat_view.collect_user_input("Enter your cat's last name - optional")
-    sex_options = ['male', 'female', '']
+    sex_options = ['male', 'Male', 'm', 'M', 'female', 'Female', 'f', 'F', '']
     sex = 'default'
     while sex not in sex_options:
         sex = add_a_cat_view.collect_user_input("Pick your cat's sex: male, female - optional")
+    if sex[0].lower() == 'm':
+        sex = 'Male'
+    elif sex[0].lower() == 'f':
+        sex = 'Female'
+    else:
+        sex = ''
     new_cat['sex'] = sex
-    new_cat['breed'] = add_a_cat_view.collect_user_input("Enter your cat's breed (YYYY) - optional")
-    year = add_a_cat_view.collect_user_input("Enter your cat's year of birth - optional")
+    new_cat['breed'] = add_a_cat_view.collect_user_input("Enter your cat's breed - optional")
+    year = add_a_cat_view.collect_user_input("Enter your cat's year of birth (YYYY) - optional")
     if year:
         month = add_a_cat_view.collect_user_input("Enter your cat's birth month (MM) - optional")
         month = 1 if not month else month

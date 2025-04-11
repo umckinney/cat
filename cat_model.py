@@ -187,15 +187,20 @@ class CatCollection:
         return self.collection[new_cat.id]
 
     def select_by_id(self, menu, id):
+        print(f'select_by_id menu = {menu}')
+        print(f'select_by_id id = {id}')
+        a = menu.get(id)
+        print(f'select_by_id result = {a}')
         return menu.get(id)
 
-    def select_cat_by_name(self, name):
+    """def select_cat_by_name(self, cat_name):
         for cat in self.collection.values():
-            print(f'cat.name = {cat.name}')
-            print(f'name = {name}')
-            if name in cat.name:
+            print(f'select cat by name cat_name = {cat_name}')
+            print(f'select cat by name cat = {cat}')
+            print(f'select cat by name cat.name = {cat.name}')
+            if cat_name == cat.name:
                 return cat
-        return False
+        return False"""
 
     def list_cats(self):
         list_of_cats = []
@@ -211,12 +216,9 @@ class CatCollection:
 
     def validate_menu_selection(self, menu, user_selection):
         try:
-            print(f'validate_menu_selection user_selection = {user_selection}')
-            print(f'validate_menu_selection menu = {menu}')
             if user_selection.isdigit():
                 user_selection = int(user_selection)
             menu_selection = menu.get(user_selection)
-            print(f'validate_menu_selection menu_selection = {menu_selection}')
             if menu_selection:
                 return menu_selection
             else:
